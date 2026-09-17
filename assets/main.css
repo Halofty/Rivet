@@ -1,0 +1,28 @@
+:root {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: #e6e8ee;
+    background: #101218;
+    color-scheme: dark;
+    line-height: 1.6;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 760px; margin: 10vh auto; padding: 24px; }
+h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.15; letter-spacing: -0.04em; }
+h2 { font-size: 1.15rem; }
+.eyebrow { color: #a8a0ff; font-size: 0.75rem; letter-spacing: 0.14em; font-weight: 700; }
+.intro, .footnote { color: #a5aabb; }
+.panel { margin-top: 32px; padding: 24px; background: #1a1d27; border: 1px solid #323747; border-radius: 12px; }
+.status-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+form { display: grid; gap: 12px; margin-top: 24px; }
+label { font-weight: 600; }
+input, button { font: inherit; border-radius: 6px; padding: 10px 14px; }
+input { width: 100%; border: 1px solid #555d73; background: #101218; color: inherit; }
+button { cursor: pointer; border: 1px solid transparent; background: #b3aaff; color: #151129; font-weight: 600; }
+button.secondary { background: transparent; border-color: #555d73; color: inherit; }
+button:disabled { opacity: 0.65; cursor: wait; }
+:focus-visible { outline: 3px solid #d0caff; outline-offset: 3px; }
+.feedback { min-height: 32px; overflow-wrap: anywhere; }
+[role="alert"] { color: #ffb3b3; }
+.footnote { font-size: 0.85rem; margin-top: 24px; }

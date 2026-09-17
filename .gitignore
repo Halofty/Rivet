@@ -1,0 +1,11 @@
+/target/
+/dist/
+/.tools/
+/.env
+/.env.local
+*.sqlite
+*.sqlite3
+*.db
+*-journal
+*-wal
+*-shm

@@ -1,0 +1,6 @@
+# A signal borrow must end before awaiting another task.
+await-holding-invalid-types = [
+    "generational_box::GenerationalRef",
+    "generational_box::GenerationalRefMut",
+    "dioxus_signals::WriteLock",
+]

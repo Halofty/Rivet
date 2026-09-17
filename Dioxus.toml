@@ -1,0 +1,5 @@
+[application]
+name = "rivet"
+
+[web.app]
+title = "Rivet"

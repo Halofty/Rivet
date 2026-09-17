@@ -1,0 +1,3 @@
+# Keep text files LF-normalized in both the repository and working tree.
+# Binary files are detected automatically and left unchanged.
+* text=auto eol=lf
