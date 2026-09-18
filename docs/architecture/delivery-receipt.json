@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "architecture",
+  "input": "C:\\Users\\rlatk\\OneDrive\\바탕 화면\\Code\\Projects\\Rivet\\docs\\architecture\\rivet.architecture.json",
+  "output": "C:\\Users\\rlatk\\OneDrive\\바탕 화면\\Code\\Projects\\Rivet\\docs\\architecture\\rivet.architecture.html",
+  "specification": {
+    "sha256": "c5cb6a1ced55b7b7a0584c7ac606bd266c1598c4666539f21a640efb52ff0cad",
+    "bytes": 3255
+  },
+  "artifact": {
+    "sha256": "4f5cb13c92d3ed0732d8dfedf0cc192f1a638157ba3c9680c6a97185b6163e90",
+    "bytes": 803466
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

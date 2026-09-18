@@ -1,6 +1,6 @@
 # Rivet development plan
 
-Status: milestone 0 implementation in progress; product features have not begun.
+Status: milestones 2 (domain/SQLite) and 2v1 (authentication and ownership) implemented and validated by the check matrix; see Current progress for runtime verification limits. Next: milestone 3.
 
 Repository inspected and documentation researched: 2026-09-17.
 
@@ -12,7 +12,13 @@ Milestone 0 now has a single-package Dioxus scaffold, separate feature entrypoin
 
 Rust 1.98.1, rustfmt, Clippy, and the WASM target are installed; `rust-toolchain.toml` pins that version. DX 0.7.10 is in ignored `.tools/bin`, verified against the official archive checksum. The VS 2022 C++ tools and WebView2 runtime were already present. `Cargo.lock` records the resolved dependencies. The stock DX Bare-Bones template was inspected in an ignored directory; it still specified Dioxus 0.7.1, so Rivet uses the planned exact 0.7.10 pin and adds explicit fullstack/server features instead of copying the template unchanged.
 
-The full `scripts/check.ps1` matrix has passed in the actual workspace path: formatting, separate Web/Desktop/Server compilation and Clippy checks, and three server-function transport tests. The Web DX build also logged success. Browser hydration and interactive flows, plus Desktop launch and real server-function calls, remain unverified, so milestone 0 is not complete. The Korean work log and code review are in [done.md](done.md), including the loader-retry draft-reset limitation. Run instructions and `RIVET_SERVER_URL` configuration are in README. There is no SQLite database yet; milestone 1 is next after this gate.
+Milestone 1 now implements typed routes, the shared shell/sidebar, project cards, status-grouped boards, local preview forms, and empty/not-found feedback. Fixtures live separately in `src/demo.rs`; there is no database or persistent mutation. The diagnostic route moved to `/dev/connection`, and loader retry no longer owns form state. The final `scripts/check.ps1` matrix passed formatting, Web/Desktop/Server compilation and Clippy, two typed-route tests, and three transport tests. DX Web and Desktop builds succeeded. Web interaction, Unicode echo and validation, direct/fallback URLs, keyboard navigation, and narrow layout checks passed. Desktop overview, board/detail navigation, preview submission, return to board, initial status selection, backend health read, and Unicode input were observed. The user stopped Computer Use with Escape before the final Desktop echo submission; Desktop echo/recovery and exhaustive keyboard/fallback checks remain unverified. Do not treat these remaining checks as passed. Korean implementation and review evidence is in [done1.md](done1.md), with milestone 0 history in [done0.md](done0.md). Close the outstanding runtime checks before declaring the earlier gates fully complete.
+
+**Decision (2026-09-17): in-app authentication ("method B").** Rivet will be reachable from the web and the desktop app anywhere, so each account's data must be private. This reverses the earlier non-goal of authentication and multiple users. Authentication is inserted as **milestone 2v1**, directly after milestone 2, so every product server function in milestones 3–4 is written against a signed-in owner from the start instead of retrofitting ownership later. Milestone numbers 3–7 are unchanged; the log for 2v1 is `docs/done2v1.md`.
+
+Milestone 2 now provides shared models and validation (`src/models/`), SQLx 0.9.0 with bundled SQLite 3.51.3, embedded migrations, owner-scoped SQL functions, and SQLite integration tests. Because of the decision above, the initial schema already includes `users` and `projects.owner_id`, and every read and write is constrained by a `UserId` that can only come from a stored account. Evidence is in [done2.md](done2.md).
+
+Milestone 2v1 adds hashed session tokens, Argon2id passwords, web HttpOnly cookie sessions, desktop bearer tokens in the OS credential store, first-account setup, sign-in throttling, Host/Origin request guarding, security headers, a body limit, and a sign-in gate in front of every route. The server now opens and migrates the database before serving. The formatting/check/Clippy matrix and 34 tests pass; browser and desktop runtime evidence and remaining gaps are in [done2v1.md](done2v1.md). The next implementation milestone is fullstack project flows (milestone 3).
 
 ## 1. Initial repository findings and technology baseline
 
@@ -45,7 +51,7 @@ Prefer versioned official documentation and the resolved crate source over older
 
 Rivet is a small project and issue manager built to learn Dioxus through a realistic application. Success means understanding component composition, reactive state, forms, routing, asynchronous loading, fullstack boundaries, persistence, and platform differences while maintaining straightforward Rust code.
 
-The MVP serves one person using a locally operated backend. It supports web and desktop clients using the same domain, UI, server functions, and database. Styling should make the application readable and usable; it is secondary to sound behavior.
+The MVP serves signed-in account owners through one backend, reachable locally or through an HTTPS reverse proxy (milestone 2v1). It supports web and desktop clients using the same domain, UI, server functions, and database. Styling should make the application readable and usable; it is secondary to sound behavior.
 
 ### Required MVP capabilities
 
@@ -59,12 +65,13 @@ The MVP serves one person using a locally operated backend. It supports web and 
 8. Search the current project's issues and filter by status.
 9. Preserve projects and issues across backend and client restarts using SQLite.
 10. Complete these flows in a browser and the Windows desktop application.
+11. Sign in with the same account on both clients; each account sees only its own projects and issues (milestone 2v1).
 
 The original milestone examples use “CRUD” broadly. Actual MVP scope is project create/read and issue create/read/update. Project editing, either entity's deletion, and moving an issue to another project are deferred. They are not prerequisites for the listed capabilities.
 
 ### Non-goals
 
-The MVP excludes LLM/AI integration, authentication, multiple users, teams or organizations, cloud deployment, realtime synchronization, WebSockets, drag and drop, attachments, notifications, complex permissions, mobile, rich text, comments, labels, priorities, due dates, analytics, and external integrations. It also excludes offline replication, standalone desktop backend packaging, a generic design system, a generic repository framework, and a separate public REST client.
+The MVP excludes LLM/AI integration, shared projects between accounts, teams or organizations, roles and permissions, OAuth/SSO, email verification and password reset by email, multi-factor authentication, managed cloud deployment, realtime synchronization, WebSockets, drag and drop, attachments, notifications, complex permissions, mobile, rich text, comments, labels, priorities, due dates, analytics, and external integrations. It also excludes offline replication, standalone desktop backend packaging, a generic design system, a generic repository framework, and a separate public REST client.
 
 Do not add a feature merely because Linear or Trello has it. Every addition should satisfy the scoped product or teach a deliberate Dioxus concept.
 
@@ -78,7 +85,8 @@ Use labeled inputs, semantic buttons and links, visible keyboard focus, textual 
 
 | Type | Fields and meaning |
 | --- | --- |
-| `Project` | `id: i64`, `name: String`, `description: String`, `created_at: i64`, `updated_at: i64` |
+| `User` | `id: i64`, `email: String` (trimmed, lowercased), `created_at: i64`; the password hash never leaves the server |
+| `Project` | `id: i64`, `name: String`, `description: String`, `created_at: i64`, `updated_at: i64`; owned by one user (server-side `owner_id`) |
 | `Issue` | `id: i64`, `project_id: i64`, `title: String`, `description: String`, `status: IssueStatus`, `created_at: i64`, `updated_at: i64` |
 | `IssueStatus` | `Todo`, `InProgress`, `Done`; serialized and stored as `todo`, `in_progress`, `done` |
 | `CreateProjectInput` | Name and description only |
@@ -97,6 +105,8 @@ Proposed validation rules, kept together in shared pure functions:
 - Any status can transition to any other status, including reopening Done issues.
 - Reject an update with no supplied fields. `Some("")` clears a description; `None` leaves it unchanged.
 - Names need not be unique. Render all user content as text through RSX.
+- Emails are unique after normalization. Passwords are 12–128 characters and are not trimmed.
+- A project belongs to exactly one account for its lifetime. Every query is scoped by the signed-in owner; another owner's ID is indistinguishable from a missing one.
 
 Client validation provides immediate feedback; the server always repeats it. Shared records and inputs derive the serialization and equality traits required by Dioxus and the transport. Keep SQL row conversion in the server layer rather than putting database dependencies on shared models.
 
@@ -139,20 +149,27 @@ src/
     mod.rs
     project.rs
     issue.rs
+    user.rs                # account record, email/password rules, client kind
     validation.rs
   api/
     mod.rs
+    auth.rs                # status, register, login, logout, require_user
     projects.rs            # shared server-function declarations
     issues.rs
     error.rs               # transport-facing application errors
   server/                  # compiled only with feature "server"
-    mod.rs                 # startup and request context
+    mod.rs                 # startup, AppState, layers
+    config.rs              # RIVET_PUBLIC_ORIGIN, RIVET_ALLOW_REGISTRATION
+    guard.rs               # Host/Origin checks and security headers
+    auth.rs                # Argon2id, throttling, cookies and bearer tokens
+    sessions.rs            # hashed session tokens
+    users.rs               # accounts and registration policy
     db.rs                  # configuration, pool, migrations
     projects.rs            # explicit SQL functions
     issues.rs
   platform/                # introduce only when configuration needs it
     mod.rs
-    desktop.rs             # backend URL / later native integration
+    desktop.rs             # backend URL, session token in the OS credential store
 tests/
   persistence.rs
   api.rs
@@ -186,7 +203,8 @@ The intended Cargo feature mapping is:
 default = []
 web = ["dioxus/web"]
 desktop = ["dioxus/desktop"]
-server = ["dioxus/server", "dep:sqlx", "dep:tokio"]
+server = ["dioxus/server", "dep:argon2", "dep:getrandom", "dep:sha2", "dep:sqlx", "dep:tokio"]
+# milestone 2v1: desktop also enables dep:keyring for the OS credential store
 ```
 
 Apply `#[cfg(feature = "server")]` to the server module and its imports. Do not gate the whole API module: clients need generated stubs. Keep `fullstack` available to both client variants. Build each feature independently; `--all-features` is not the application validation strategy. [Fullstack feature guidance](https://dioxuslabs.com/learn/0.7/essentials/fullstack/project_setup/).
@@ -250,7 +268,9 @@ Fetch all issues for the selected project, then derive the visible list locally.
 
 ## 7. Fullstack interface and error contract
 
-Use seven server functions, with explicit stable paths. These are proposed interface contracts, not compiled macro examples. Server-function macros own serialization and transport; callers use Rust functions directly.
+Milestone 2v1 adds four authentication functions: `auth_status` (GET `/api/auth/status`), `register`, `login`, and `logout` (POST `/api/auth/...`). Every product function below first calls `require_user` and passes the resulting `UserId` to the data layer; a missing or expired session returns 401.
+
+Use seven product server functions, with explicit stable paths. These are proposed interface contracts, not compiled macro examples. Server-function macros own serialization and transport; callers use Rust functions directly.
 
 | Function and input | Success payload | HTTP method/path |
 | --- | --- | --- |
@@ -266,7 +286,7 @@ The update function handles both basic editing and a status-only patch, avoiding
 
 Use `std::result::Result<T, ApiError>` explicitly where helpful to avoid ambiguity with Dioxus's `Result` alias. Plan a small serializable transport error with validation details, not found, generic internal failure, and conversion from `ServerFnError` for transport failures. Dioxus 0.7 custom server-function errors require serialization, `From<ServerFnError>`, and `AsStatusCode`; verify the exact imports and round-trip behavior against the pinned crate. [Server-function error contract](https://dioxuslabs.com/learn/0.7/essentials/fullstack/server_functions/).
 
-Map validation to 400, missing resources to 404, and unexpected server failures to 500. Field validation details should identify a known input field and user-readable message. Database errors are logged server-side with operation context, then mapped to a generic failure; do not serialize SQL, filesystem paths, or internal exception text. Transport failures render as a connection/retry message without discarding input.
+Map validation to 400, missing or unowned resources to 404, missing sessions and failed sign-ins to 401, closed registration to 403, throttled sign-ins to 429, and unexpected server failures to 500. Field validation details should identify a known input field and user-readable message. Database errors are logged server-side with operation context, then mapped to a generic failure; do not serialize SQL, filesystem paths, or internal exception text. Transport failures render as a connection/retry message without discarding input.
 
 Use parameterized SQL exclusively. Each update writes only supplied fields and returns the committed record. Multi-statement work requiring atomicity uses a short transaction. Obtain timestamps on the server. Server startup failure, including migration failure, prevents the listener from accepting requests and reports the error in logs.
 
@@ -278,12 +298,14 @@ Choose SQLx for asynchronous access and a built-in migration workflow. Use direc
 
 | Table | Columns and constraints |
 | --- | --- |
-| `projects` | `id INTEGER PRIMARY KEY`; `name TEXT NOT NULL`; `description TEXT NOT NULL DEFAULT ''`; `created_at INTEGER NOT NULL`; `updated_at INTEGER NOT NULL` |
+| `users` | `id INTEGER PRIMARY KEY`; `email TEXT NOT NULL UNIQUE`; `password_hash TEXT NOT NULL` (Argon2id PHC string); timestamps |
+| `sessions` (0002) | `token_hash BLOB UNIQUE` (SHA-256 of the random token); `user_id` → users ON DELETE CASCADE; `client IN ('web','desktop')`; `created_at`; `expires_at` (30 days) |
+| `projects` | `id INTEGER PRIMARY KEY`; `owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT`; `name TEXT NOT NULL`; `description TEXT NOT NULL DEFAULT ''`; `created_at INTEGER NOT NULL`; `updated_at INTEGER NOT NULL` |
 | `issues` | `id INTEGER PRIMARY KEY`; `project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE RESTRICT`; `title TEXT NOT NULL`; `description TEXT NOT NULL DEFAULT ''`; `status TEXT NOT NULL DEFAULT 'todo' CHECK (status IN ('todo', 'in_progress', 'done'))`; `created_at INTEGER NOT NULL`; `updated_at INTEGER NOT NULL` |
 
 Add length/nonempty CHECK constraints consistent with normalized name/title inputs and description limits. Rust validation remains authoritative for Unicode trimming. Enforce foreign keys on every connection. Deletion is absent from the interface; RESTRICT makes the ownership rule safe if later code attempts it. `AUTOINCREMENT` is unnecessary while there is no deletion or distributed ID allocation.
 
-Create one secondary index, `issues(project_id, created_at, id)`, for project-scoped listing and ordering. Primary keys already support detail lookups. Do not index status or text search yet: filtering is in memory and projects are expected to be small.
+Create secondary indexes `projects(owner_id, created_at, id)` and `issues(project_id, created_at, id)` for owner- and project-scoped listing and ordering, plus session lookups by user and expiry. All tables are `STRICT`. Primary keys already support detail lookups. Do not index status or text search yet: filtering is in memory and projects are expected to be small.
 
 ### Database lifecycle and storage
 
@@ -316,7 +338,7 @@ The shared application consists of RSX, components, CSS, routes, validation, mod
 
 The MVP desktop app is a client of a separately running local server. It is not a self-contained offline database application. Use `dx serve --desktop` during development and test the release client against an explicitly started local backend in milestone 6. Configure `dioxus::fullstack::set_server_url` before client launch when needed, isolated to the desktop client build. Stable endpoint names help keep native clients compatible, but client and server should still be built from the same revision during MVP. [Native fullstack behavior](https://dioxuslabs.com/learn/0.7/essentials/fullstack/native/).
 
-Bind the unauthenticated MVP server to loopback and document its actual port. A loopback server supports local use without requiring cloud deployment or internet access; a stopped backend still means persisted data cannot be loaded. Do not add a process supervisor, packaged sidecar server, or offline fallback in this milestone. A backend-unavailable message with Retry is required.
+Keep the backend bound to loopback. Remote access goes through an HTTPS reverse proxy on the same host that forwards the original `Host` header, with `RIVET_PUBLIC_ORIGIN` naming the public origin: the server answers only loopback host names and that origin (blocking DNS rebinding), rejects browser writes from other origins, and marks cookies `Secure` for HTTPS. The first account can be created only by a direct local request (loopback host name and no proxy forwarding headers), so a newly exposed server cannot be claimed remotely even if a proxy rewrites `Host`; later sign-ups require `RIVET_ALLOW_REGISTRATION=true`. Web sessions use an HttpOnly `SameSite=Lax` cookie; desktop sessions use a bearer token stored in Windows Credential Manager, and a non-loopback `RIVET_SERVER_URL` must use HTTPS. A stopped backend still means persisted data cannot be loaded. Do not add a process supervisor, packaged sidecar server, or offline fallback in this milestone. A backend-unavailable message with Retry is required.
 
 Keep browser globals, local storage, current locale/time, and native window handles out of shared initial render logic. SSR and hydration must produce the same initial markup. Validate stylesheet/asset resolution and form behavior in both renderers early. Desktop smoke testing begins in milestone 0 and repeats with integration; it is not postponed entirely until milestone 6.
 
@@ -378,11 +400,23 @@ Each milestone should be one or several small, reviewable changes. “Complete�
 
 **Dependencies:** milestone 0; follows milestone 1 in the planned sequence.
 
+### Milestone 2v1 — Authentication and ownership
+
+**Goal:** make one backend safely usable from the web and desktop anywhere, with each account's data private, before any product data flows through server functions.
+
+**Tasks:** session migration with hashed tokens; Argon2id hashing with bounded concurrency and a timing-equalizing dummy verification; first-account setup restricted to loopback, optional open registration; sign-in throttling per account; web cookie and desktop bearer transports with desktop credential storage; `auth_status`/`register`/`login`/`logout` and `require_user`; Host/Origin guard, security headers, and body limit; database opened before serving; sign-in gate for all routes and sign-out in the shell; transport tests through the production layers.
+
+**Dioxus concepts:** server-function extractors, response headers from server functions, SSR with request cookies, loader restart after sign-in/out, error/suspense boundaries, desktop request headers, feature-gated native APIs.
+
+**Completion criteria:** unauthenticated protected calls return 401; web sign-up/sign-in/sign-out work in a browser with an HttpOnly cookie; desktop sign-in persists across restarts and sign-out revokes the token; a second account cannot read or change the first account's data by ID (enforced in SQL and covered by tests); foreign hosts and cross-origin writes are rejected.
+
+**Dependencies:** milestone 2.
+
 ### Milestone 3 — Fullstack project flows
 
 **Goal:** deliver project create/list/open through the real backend.
 
-**Tasks:** initialize database before serving; provide request context; implement project server functions and errors; connect shell/project loaders and creation action; replace project fixtures; add loading, empty, not-found, retry, and validation feedback. Verify a desktop round trip now.
+**Tasks:** implement owner-scoped project server functions (each starting with `require_user`) and errors; connect shell/project loaders and creation action; replace project fixtures; add loading, empty, not-found, retry, and validation feedback. Verify a desktop round trip now.
 
 **Dioxus concepts:** server functions, serialization, loaders, actions, SSR/hydration, suspense/error boundaries, narrow context.
 
@@ -453,7 +487,7 @@ API tests must include transport behavior, not only direct SQL calls, because a 
 
 ### Planned commands
 
-The formatting, feature-check, Clippy, and test commands below are now automated by `scripts/check.ps1` and have passed. Toolchain setup is complete and the Web DX build has succeeded. Desktop runtime and release verification remain pending; see [done.md](done.md) for the precise evidence and limits.
+The formatting, feature-check, Clippy, and test commands below are now automated by `scripts/check.ps1` and have passed. Toolchain setup is complete and the Web DX build has succeeded. Desktop runtime and release verification remain pending; see [done0.md](done0.md) for the precise evidence and limits.
 
 ```powershell
 # Inspect the installed toolchain and target.
@@ -510,6 +544,7 @@ Use `cargo fmt --all` to apply formatting before the check. Initial dependency r
 | SQLx feature flags, compiler compatibility, bundled SQLite | SQLx 0.9.0 is the candidate, not an installed dependency. Resolve and lock it in milestone 2; record actual SQLite version and document any compatibility-driven alternative. |
 | Desktop backend lifecycle expectations | MVP assumes a separately running local server. Standalone/offline packaging is deferred and must be planned explicitly if requirements change. |
 | Windows tooling, WebView2, OneDrive path | Test actual workspace path and native startup early; keep runtime DB in local application data. |
+| Public exposure of a personal server | Loopback bind behind an HTTPS reverse proxy; Host/Origin guard; loopback-only first-account setup; Argon2id with per-account throttling (in memory, reset on restart); no password reset by email, so a lost password requires local administration. CSP and IP-based rate limiting are future hardening. |
 | Multiple open windows can show stale data | Manual refresh and navigation are sufficient for MVP; no hidden claim of realtime consistency. |
 | Dataset can outgrow client filtering | Start with complete per-project lists; measure before adding pagination, indexed search, or server-side filtering. |
 
@@ -524,6 +559,8 @@ Post-MVP expansion candidates, each requiring an explicit plan update:
 
 ### Complexity review and working agreement
 
-This plan intentionally stops at two entities, three statuses, one package, one database, seven server functions, a typed route enum, and Dioxus's own state primitives. It adds no generic repository/service hierarchy, global entity cache, event bus, authentication system, synchronization engine, or cross-platform abstraction layer.
+Record completed work, validation results, code reviews, and remaining work in Korean in `docs/done{n}.md`, where `n` is the milestone number. Update the same file throughout that milestone; for example, milestone 0 uses `docs/done0.md` and milestone 1 uses `docs/done1.md`. The number identifies the milestone, not the session or revision; an inserted milestone such as 2v1 uses `docs/done2v1.md`. Keep verified results separate from planned or unverified work, and update links when log filenames change.
 
-Use idiomatic Rust and Dioxus; keep changes small enough to review. Add directories and dependencies when their responsibilities become real. Run checks appropriate to each change. Preserve the MVP/non-MVP boundary, and explain material deviations by updating this document. The next work after this planning task is the remaining milestone 0 setup, not unplanned product implementation.
+This plan intentionally stops at two entities, three statuses, one package, one database, seven server functions, a typed route enum, and Dioxus's own state primitives. It adds one deliberately small authentication system (milestone 2v1: password sign-in, sessions, owner scoping) but no roles, OAuth, generic repository/service hierarchy, global entity cache, event bus, synchronization engine, or cross-platform abstraction layer.
+
+Use idiomatic Rust and Dioxus; keep changes small enough to review. Add directories and dependencies when their responsibilities become real. Run checks appropriate to each change. Preserve the MVP/non-MVP boundary, and explain material deviations by updating this document. Consult Current progress and the milestone logs for the next work and outstanding verification gates.

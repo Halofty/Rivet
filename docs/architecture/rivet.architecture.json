@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Rivet · 목표 아키텍처",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1280,
+      700
+    ]
+  },
+  "components": [
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "Web 클라이언트",
+      "sublabel": "SSR + WASM hydration",
+      "pos": [
+        50,
+        90
+      ],
+      "size": [
+        250,
+        80
+      ]
+    },
+    {
+      "id": "desktop",
+      "type": "frontend",
+      "label": "Desktop 클라이언트",
+      "sublabel": "Windows WebView2",
+      "pos": [
+        50,
+        480
+      ],
+      "size": [
+        250,
+        80
+      ]
+    },
+    {
+      "id": "server",
+      "type": "backend",
+      "label": "Dioxus 서버 함수",
+      "sublabel": "Axum · AppState · 입력 검증",
+      "pos": [
+        480,
+        285
+      ],
+      "size": [
+        280,
+        90
+      ]
+    },
+    {
+      "id": "sql",
+      "type": "backend",
+      "label": "SQLx 영속성 계층",
+      "sublabel": "직접 SQL · 서버 전용",
+      "pos": [
+        940,
+        285
+      ],
+      "size": [
+        270,
+        90
+      ]
+    },
+    {
+      "id": "database",
+      "type": "database",
+      "label": "SQLite",
+      "sublabel": "projects · issues",
+      "pos": [
+        940,
+        510
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "models",
+      "type": "backend",
+      "label": "공유 도메인",
+      "sublabel": "Project · Issue · 순수 검증",
+      "pos": [
+        480,
+        70
+      ],
+      "size": [
+        280,
+        80
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "web-api",
+      "from": "web",
+      "to": "server",
+      "label": "동일 출처 HTTP",
+      "variant": "emphasis"
+    },
+    {
+      "id": "desktop-api",
+      "from": "desktop",
+      "to": "server",
+      "label": "설정된 서버 URL",
+      "variant": "emphasis"
+    },
+    {
+      "id": "api-sql",
+      "from": "server",
+      "to": "sql",
+      "label": "검증 후 호출"
+    },
+    {
+      "id": "sql-db",
+      "from": "sql",
+      "to": "database",
+      "label": "매개변수 SQL",
+      "labelAt": [
+        1075,
+        440
+      ]
+    },
+    {
+      "id": "api-models",
+      "from": "server",
+      "to": "models",
+      "label": "타입·검증 사용"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "공통 화면 · 현재 M1",
+      "items": [
+        "두 클라이언트는 같은 RSX·Router·CSS 사용",
+        "현재 프로젝트·이슈는 고정 예시 / 저장 없음"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "목표 구조 · M2–5",
+      "items": [
+        "SQLx·SQLite·공유 도메인은 M2 예정",
+        "프로젝트 API M3 / 이슈 API M4 / 필터 M5"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "운영 경계",
+      "items": [
+        "loopback 서버 · SQLite는 로컬 앱 데이터 경로",
+        "오프라인 저장·인증·실시간 동기화는 범위 밖"
+      ]
+    }
+  ]
+}

@@ -8,14 +8,34 @@ publish = false
 dioxus = { version = "=0.7.10", features = ["fullstack", "router"] }
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"], optional = true }
+argon2 = { version = "0.6", optional = true }
+getrandom = { version = "0.3", optional = true }
+keyring = { version = "4.2", optional = true }
+sha2 = { version = "0.10", optional = true }
+sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "sqlite-bundled", "migrate", "macros"], optional = true }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync"], optional = true }
 
 [features]
 default = []
 web = ["dioxus/web"]
-desktop = ["dioxus/desktop"]
-server = ["dioxus/server", "dep:tokio"]
+desktop = ["dioxus/desktop", "dep:keyring"]
+server = [
+    "dioxus/server",
+    "dep:argon2",
+    "dep:getrandom",
+    "dep:sha2",
+    "dep:sqlx",
+    "dep:tokio",
+]
 
 [dev-dependencies]
 serde_json = "1"
+tempfile = "3"
 tower = { version = "0.5", features = ["util"] }
+
+# Password hashing is slow without optimization; keep debug sign-in and tests responsive.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3

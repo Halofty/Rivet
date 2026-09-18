@@ -1,4 +1,4 @@
-# Rivet 작업 내역 및 코드 리뷰
+# Rivet Milestone 0 작업 내역 및 코드 리뷰
 
 작성일: 2026-09-17
 
@@ -12,7 +12,9 @@ Rust/Dioxus 개발 환경, 최소 Fullstack 애플리케이션, 플랫폼별 빌
 실제 브라우저의 hydration·폼 동작과 Desktop 창에서의 서버 통신은 아직 검증하지 못했다.
 프로젝트·이슈 관리 기능과 SQLite는 구현하지 않았다.
 
-이 문서는 작업 결과와 검토 기록이다. 개발 방향과 범위의 기준은 [planning.md](planning.md)다.
+이 문서는 Milestone 0의 작업 결과와 검토 기록이다. 이후에도 해당 마일스톤 번호에 맞춰
+`docs/done{n}.md`에 작업 내역, 검증 결과, 코드 리뷰와 남은 작업을 한국어로 기록한다.
+같은 마일스톤의 후속 작업은 해당 문서에 누적한다. 개발 방향과 범위의 기준은 [planning.md](planning.md)다.
 
 ## 2. 완료한 작업
 
@@ -190,3 +192,8 @@ Git 커밋, 원격 저장소 push, 서비스 배포도 수행하지 않았다.
 5. Milestone 1의 정적 앱 셸과 typed routes를 구현한다.
 
 새 작업을 마칠 때는 실행한 검사와 결과를 함께 추가한다. 계획, 구현, 검증을 같은 의미의 “완료”로 취급하지 않는다.
+
+
+## Milestone 1 후속 확인
+
+정적 셸과 typed routes 구현 및 최신 실행 검증은 [done1.md](done1.md)에 기록했다. 연결 점검은 /dev/connection으로 옮겼고 폼 상태를 로더 재시도 경계 밖으로 분리했다. Web의 실제 한국어 서버 왕복과 오류 복구, Desktop 실행 및 health 조회를 확인했다. Desktop 최종 echo 제출은 사용자의 Computer Use 중단으로 확인하지 못했으며, 남은 검증을 통과로 처리하지 않는다.
